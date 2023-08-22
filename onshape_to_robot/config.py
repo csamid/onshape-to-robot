@@ -3,6 +3,7 @@ import sys
 import os
 import commentjson as json
 from colorama import Fore, Back, Style
+import subprocess
 
 config = {}
 
@@ -122,7 +123,9 @@ except OSError:
 # Checking that OpenSCAD is present
 if config['useScads']:
     print(Style.BRIGHT + '* Checking OpenSCAD presence...' + Style.RESET_ALL)
-    if os.system('openscad -v 2> /dev/null') != 0:
+    try:
+        subprocess.run(["openscad", "-v"], capture_output=True, check=True)
+    except subprocess.CalledProcessError:
         print(
             Fore.RED + "Can't run openscad -v, disabling OpenSCAD support" + Style.RESET_ALL)
         print(Fore.BLUE + "TIP: consider installing openscad:" + Style.RESET_ALL)
