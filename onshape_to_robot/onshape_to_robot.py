@@ -15,7 +15,7 @@ partNames = {}
 def main():
     # Loading configuration, collecting occurrences and building robot tree
     from .load_robot import \
-        config, client, tree, occurrences, getOccurrence, frames
+        config, client, tree, occurrences, getOccurrence, frames, workspaceId
 
 
     # Creating robot for output
@@ -51,7 +51,7 @@ def main():
     # Adds a part to the current robot link
 
 
-    def addPart(occurrence, matrix):
+    def addPart(occurrence, matrix, assemblyId):
         part = occurrence['instance']
 
         if part['suppressed']:
@@ -132,6 +132,13 @@ def main():
                 mass = entry['mass']
                 com = entry['com']
                 inertia = entry['inertia']
+
+            elif part['isStandardContent']:
+                massProperties = client.standard_content_mass_properties(config['documentId'],workspaceId, assemblyId,part['documentId'],part['elementId'],part['partId'],part['documentVersion'],part['configuration'])
+                mass = massProperties['mass'][0]
+                com = massProperties['centroid']
+                inertia = massProperties['inertia']
+   
             else:
                 massProperties = client.part_mass_properties(
                     part['documentId'], part['documentMicroversion'], part['elementId'], part['partId'], part['configuration'])
@@ -201,9 +208,13 @@ def main():
 
         # Create the link, collecting all children in the tree assigned to this top-level part
         robot.startLink(link, matrix)
+        # create assembly for standard content
+        assembly = client.create_assembly(config['documentId'], workspaceId, name='temp assembly')
         for occurrence in occurrences.values():
             if occurrence['assignation'] == tree['id'] and occurrence['instance']['type'] == 'Part':
-                addPart(occurrence, matrix)
+                addPart(occurrence, matrix, assembly['id'])
+        # delete assembly since no longer needed
+        client.del_element(config['documentId'], workspaceId, assembly['id'])
         robot.endLink()
 
         # Adding the frames (linkage is relative to parent)
