@@ -158,6 +158,13 @@ class Client():
         '''
 
         return self._api.request('get', '/api/documents/d/'+did+'/'+type+'/'+wid+'/elements')
+    
+    def del_element(self, did, wid, eid):
+        '''
+        Deletes a element in a given document
+        '''
+
+        return self._api.request('delete', '/api/elements/d/'+did+'/w/'+wid+'/e/'+eid)
 
     def create_assembly(self, did, wid, name='My Assembly'):
         '''
@@ -176,7 +183,64 @@ class Client():
             'name': name
         }
 
-        return self._api.request('post', '/api/assemblies/d/' + did + '/w/' + wid, body=payload)
+        return self._api.request('post', '/api/assemblies/d/' + did + '/w/' + wid, body=payload).json()
+    
+    def standard_content_mass_properties(self, did, wid, instance_did, instance_eid,instance_partId, instance_vid, configuration='default'):
+        '''
+        Gets standard content mass properties
+
+        Args:
+            - did (str): Document ID
+            - wid (str): Workspace ID
+            - instance_did (str): instance Document ID
+            - instance_eid (str): instance Element ID
+            - instance_partId (str): instance Part ID
+            - instance_vid (str): instance Document Version ID
+            - configuration (str): instance Configuration
+
+        Returns:
+            massProperties
+        '''
+        def invoke():
+            # create assembly
+            assembly = self.create_assembly(did, wid, name='temp assembly')
+            assemblyId = assembly['id']
+            # insert the standard content with transform
+            self.create_assembly_instance(did, wid, assemblyId, instance_did, instance_eid, instance_partId ,instance_vid, configuration)
+            # get massProperties
+            massProperties = self.assembly_mass_properties(did, wid, assemblyId)
+            # delete assembly
+            self.del_element(did, wid, assemblyId)
+            return massProperties
+        
+        return json.loads(self.cache_get('standard_content', (instance_did, instance_eid, instance_vid, configuration), invoke, True))
+    
+    def create_assembly_instance(self, did, wid, eid, instance_did, instance_eid, instance_partId, instance_vid, configuration='default'):
+        '''
+        Creates a assembly instance in the specified document / workspace.
+
+        Args:
+            - did (str): Document ID
+            - wid (str): Workspace ID
+            - eid (str): Element ID
+            - instance_did (str): instance Document ID
+            - instance_eid (str): instance Element ID
+            - instance_partId (str): instance Part ID
+            - instance_vid (str): instance Document Version ID
+        '''
+
+        payload = {
+            'configuration': configuration,
+            'documentId': instance_did,
+            'elementId': instance_eid,
+            'partId': instance_partId,
+            'versionId': instance_vid
+        }
+
+        return self._api.request('post', '/api/assemblies/d/' + did + '/w/' + wid + '/e/' + eid + '/instances', body=payload)
+    
+    def assembly_mass_properties(self, did, wid, eid, type = 'w',configuration = 'default'):
+        return self._api.request('get', '/api/assemblies/d/'+did+'/'+type+'/'+wid+'/e/'+eid+'/massproperties', query={'configuration': configuration})
 
     def get_assembly(self, did, wid, eid, type='w', configuration='default'):
         return self._api.request('get', '/api/assemblies/d/'+did+'/'+type+'/'+wid+'/e/'+eid, query={'includeMateFeatures': 'true', 'includeMateConnectors': 'true', 'includeNonSolids': 'true', 'configuration': configuration}).json()

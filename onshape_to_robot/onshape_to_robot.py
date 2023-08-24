@@ -15,7 +15,7 @@ partNames = {}
 def main():
     # Loading configuration, collecting occurrences and building robot tree
     from .load_robot import \
-        config, client, tree, occurrences, getOccurrence, frames
+        config, client, tree, occurrences, getOccurrence, frames, workspaceId
 
 
     # Creating robot for output
@@ -132,6 +132,14 @@ def main():
                 mass = entry['mass']
                 com = entry['com']
                 inertia = entry['inertia']
+
+            elif part['isStandardContent']:
+                # this works but only for mass, inertia is good now, seems issue was with cache
+                massProperties = client.standard_content_mass_properties(config['documentId'],workspaceId,part['documentId'],part['elementId'],part['partId'],part['documentVersion'],part['configuration'])
+                mass = massProperties['mass'][0]
+                com = massProperties['centroid']
+                inertia = massProperties['inertia']
+   
             else:
                 massProperties = client.part_mass_properties(
                     part['documentId'], part['documentMicroversion'], part['elementId'], part['partId'], part['configuration'])
