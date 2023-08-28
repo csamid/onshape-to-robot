@@ -89,9 +89,15 @@ def findInstance(path, instances=None):
 
 # Collecting occurrences, the path is the assembly / sub assembly chain
 occurrences = {}
+id_list = []
 for occurrence in root['occurrences']:
     occurrence['assignation'] = None
     occurrence['instance'] = findInstance(occurrence['path'])
+
+    # this gets all the instance part ids in the top assembly
+    if occurrence['instance']['type'] == 'Part':
+        id_list.append(occurrence['instance']['id'])
+        
     occurrence['transform'] = np.matrix(
         np.reshape(occurrence['transform'], (4, 4)))
     occurrence['linkName'] = None
