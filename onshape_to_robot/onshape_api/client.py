@@ -177,6 +177,39 @@ class Client():
         }
 
         return self._api.request('post', '/api/assemblies/d/' + did + '/w/' + wid, body=payload)
+    
+    def modify_assembly(self, did, wid, eid, payload):
+        '''
+        Modifies a assembly. See onshape docs for options
+
+        Args:
+            - did (str): Document ID
+            - wid (str): Workspace ID
+            - eid (str): Element ID
+        '''
+        return self._api.request('post', '/api/assemblies/d/'+did+'/w/'+wid+'/e/'+eid+'/modify', body=payload)
+    
+    def modify_instances(self,did,wid,eid,instances_id =[], suppress=True):
+        '''
+        Suppress or unsuppress one or more instances in the specified assembly
+
+        Args:
+            - did (str): Document ID
+            - wid (str): Workspace ID
+            - eid (str): Element ID
+            - instances_id (list): Instance(s) ID
+            - suppress (bool): If True, suppress instances; if False, unsuppress instances
+        '''
+        action = "suppressInstances" if suppress else "unsuppressInstances"
+        payload = {
+            action: instances_id
+        }
+
+        return self.modify_assembly(did, wid, eid, payload)
+
+    def assembly_mass_properties(self, did, wid, eid, type = 'w',configuration = 'default'):
+        # PASS IN INSTANCE_ID TO STORE CACHE
+        return self._api.request('get', '/api/assemblies/d/'+did+'/'+type+'/'+wid+'/e/'+eid+'/massproperties', query={'configuration': configuration})
 
     def get_assembly(self, did, wid, eid, type='w', configuration='default'):
         return self._api.request('get', '/api/assemblies/d/'+did+'/'+type+'/'+wid+'/e/'+eid, query={'includeMateFeatures': 'true', 'includeMateConnectors': 'true', 'includeNonSolids': 'true', 'configuration': configuration}).json()
