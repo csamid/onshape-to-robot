@@ -15,7 +15,7 @@ partNames = {}
 def main():
     # Loading configuration, collecting occurrences and building robot tree
     from .load_robot import \
-        config, client, tree, occurrences, getOccurrence, frames
+        config, client, tree, occurrences, getOccurrence, frames, id_list, assemblyId, workspaceId
 
 
     # Creating robot for output
@@ -51,7 +51,7 @@ def main():
     # Adds a part to the current robot link
 
 
-    def addPart(occurrence, matrix):
+    def addPart(occurrence, matrix, id_list, assemblyId):
         part = occurrence['instance']
 
         if part['suppressed']:
@@ -132,6 +132,20 @@ def main():
                 mass = entry['mass']
                 com = entry['com']
                 inertia = entry['inertia']
+            
+            elif part['isStandardContent']:
+                # # suppress all 
+                client.modify_instances(config['documentId'],workspaceId,assemblyId,id_list,suppress=True)
+                # # unsuppress current part
+                client.modify_instances(config['documentId'],workspaceId,assemblyId,part["id"],suppress=False)
+                # # get assembly mass properties
+                massProperties = client.assembly_mass_properties(config['documentId'],workspaceId,assemblyId)
+                # # unsuppress all
+                client.modify_instances(config['documentId'],workspaceId,assemblyId,id_list,suppress=False)
+                mass = massProperties['mass'][0]
+                com = massProperties['centroid']
+                inertia = massProperties['inertia']
+                
             else:
                 massProperties = client.part_mass_properties(
                     part['documentId'], part['documentMicroversion'], part['elementId'], part['partId'], part['configuration'])
@@ -203,7 +217,7 @@ def main():
         robot.startLink(link, matrix)
         for occurrence in occurrences.values():
             if occurrence['assignation'] == tree['id'] and occurrence['instance']['type'] == 'Part':
-                addPart(occurrence, matrix)
+                addPart(occurrence, matrix, id_list, assemblyId)
         robot.endLink()
 
         # Adding the frames (linkage is relative to parent)
